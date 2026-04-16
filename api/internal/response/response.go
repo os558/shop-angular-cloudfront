@@ -21,6 +21,14 @@ func ErrInternalServer() events.APIGatewayProxyResponse {
 	}
 }
 
+func ErrBadRequest() events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusBadRequest,
+		Headers:    corsHeaders,
+		Body:       `{"error":"bad request"}`,
+	}
+}
+
 func ErrNotFound() events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusNotFound,
