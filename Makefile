@@ -1,20 +1,42 @@
-
 GO_BUILD := GOOS=linux GOARCH=arm64 go build -tags lambda.norpc
-
-.PHONY: install
-install:
-	cd client && npm install
 
 .PHONY: build-ui
 build-ui:
-	cd client && npx ng build --configuration production
+	cd client && npm ci && npx ng build --configuration production
 
 .PHONY: build-api
 build-api:
 	cd api &&  \
 	$(GO_BUILD) -o ./dist/getProductsList/bootstrap ./cmd/getProductsList/main.go && \
-	$(GO_BUILD) -o ./dist/getProductsById/bootstrap ./cmd/getProductsById/main.go
+	$(GO_BUILD) -o ./dist/getProductsById/bootstrap ./cmd/getProductsById/main.go && \
+	$(GO_BUILD) -o ./dist/createProduct/bootstrap ./cmd/createProduct/main.go
 
 .PHONY: deploy
 deploy: build-ui build-api
 	cd infra && npx cdk deploy --all --require-approval never $(if $(PROFILE),--profile $(PROFILE),)
+
+.PHONY: seed
+seed:
+	cd api && go run cmd/seed/main.go
+
+.PHONY: seed-local
+seed-local:
+	cd api && LOCALSTACK_ENDPOINT=http://localhost:4566 go run cmd/seed/main.go
+
+.PHONY: deploy-local
+deploy-local:
+	cd infra && npx cdklocal bootstrap && npx cdklocal deploy DeployAPIStack --require-approval never --context local=true
+
+.PHONY: compose-up
+compose-up:
+	cd infra && docker compose up -d
+
+.PHONY: compose-down
+compose-down: 
+	cd infra && docker compose down
+
+.PHONY: local-up
+local-up: compose-up deploy-local seed-local
+
+.PHONY: local-down
+local-down: compose-down

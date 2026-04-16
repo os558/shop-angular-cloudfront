@@ -1,6 +1,7 @@
-package products
+package handlers
 
 import (
+	"aws-practitioner-for-js/internal/products"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -23,7 +24,7 @@ func TestGetProductList(t *testing.T) {
 		t.Errorf("expected status 200, got %d", response.StatusCode)
 	}
 
-	var products []Product
+	var products []products.Product
 	err = json.Unmarshal([]byte(response.Body), &products)
 	if err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)
@@ -53,7 +54,7 @@ func TestGetProductById_Success(t *testing.T) {
 		t.Errorf("expected status 200, got %d", response.StatusCode)
 	}
 
-	var product Product
+	var product products.Product
 	err = json.Unmarshal([]byte(response.Body), &product)
 	if err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)

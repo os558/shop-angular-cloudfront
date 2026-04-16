@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	lambda.Start(handlers.GetProductById)
+	lambda.Start(handlers.CreateProduct)
 }
