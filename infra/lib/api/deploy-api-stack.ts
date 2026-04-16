@@ -6,6 +6,6 @@ export class DeployAPIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new DeploymentService(this, 'deployment-service');
+    new DeploymentService(this, 'deployment');
   }
 }
