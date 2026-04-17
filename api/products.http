@@ -1,28 +1,17 @@
 
-### Get Products
-GET https://api.shop-angular-cloudfront.tech/products
-
-### Get Product
-GET https://api.shop-angular-cloudfront.tech/products/7567ec4b-b10c-48c5-9345-fc73c48a80aa
-
-
-### Not Found Product
-GET https://api.shop-angular-cloudfront.tech/products/not-found
-
-### LOCAL
+@baseUrl = https://api.shop-angular-cloudfront.tech
 
 ### Get Products
-GET https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products
+GET {{baseUrl}}/products
 
 ### Get Product
-GET https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products/62d072da-2c6b-44cc-b966-9e2cff6025df
+GET {{baseUrl}}/products/7567ec4b-b10c-48c5-9345-fc73c48a80aa
 
 ### Not Found Product
-GET https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products/not-found
-
+GET {{baseUrl}}/products/not-found
 
 ### Create Product
-POST https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products
+POST {{baseUrl}}/products
 Content-Type: application/json
 
 {
@@ -33,7 +22,7 @@ Content-Type: application/json
 }
 
 ### Create Product Invalid 1
-POST https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products
+POST {{baseUrl}}/products
 Content-Type: application/json
 
 {
@@ -44,7 +33,53 @@ Content-Type: application/json
 }
 
 ### Create Product Invalid 2
-POST https://4go1eyjhk6.execute-api.localhost.localstack.cloud:4566/prod/products
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+    "description": "Description for ProductThree",
+    "price": 30,
+    "count": 30
+}
+
+### LOCAL
+
+@baseUrl = https://iplkh4tr85.execute-api.localhost.localstack.cloud:4566/prod
+
+### Get Products
+GET {{baseUrl}}/products
+
+### Get Product
+GET {{baseUrl}}/products/62d072da-2c6b-44cc-b966-9e2cff6025df
+
+### Not Found Product
+GET {{baseUrl}}/products/not-found
+
+
+### Create Product
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+    "title": "ProductThree",
+    "description": "Description for ProductThree",
+    "price": 30,
+    "count": 30
+}
+
+### Create Product Invalid 1
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+    "title": "ProductThree",
+    "descriptionDescription for ProductThree",
+    "price": 30,
+    "count": 30
+}
+
+### Create Product Invalid 2
+POST {{baseUrl}}/products
 Content-Type: application/json
 
 {
