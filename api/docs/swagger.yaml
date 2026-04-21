@@ -32,6 +32,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+    post:
+      summary: Create a product
+      description: Creates a new product. `title` and `price` are required fields.
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+            examples:
+              valid:
+                summary: Valid request
+                value:
+                  title: ProductOne
+                  description: Short product description
+                  price: 2.4
+                  count: 4
+              missingTitle:
+                summary: Missing title (400)
+                value:
+                  description: No title provided
+                  price: 10
+                  count: 1
+      responses:
+        "200":
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Bad request — invalid JSON or missing required fields (title, price)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /products/{productId}:
     get:
       summary: Get product by ID
@@ -73,14 +117,32 @@ components:
       required:
         - id
         - title
-        - description
         - price
-        - count
       properties:
         id:
           type: string
           format: uuid
           example: 7567ec4b-b10c-48c5-9345-fc73c48a80aa
+        title:
+          type: string
+          example: ProductOne
+        description:
+          type: string
+          example: Short Product Description1
+        price:
+          type: number
+          format: double
+          example: 2.4
+        count:
+          type: integer
+          example: 4
+
+    CreateProductRequest:
+      type: object
+      required:
+        - title
+        - price
+      properties:
         title:
           type: string
           example: ProductOne
