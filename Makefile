@@ -9,7 +9,9 @@ build-api:
 	cd api &&  \
 	$(GO_BUILD) -o ./dist/getProductsList/bootstrap ./cmd/getProductsList/main.go && \
 	$(GO_BUILD) -o ./dist/getProductsById/bootstrap ./cmd/getProductsById/main.go && \
-	$(GO_BUILD) -o ./dist/createProduct/bootstrap ./cmd/createProduct/main.go
+	$(GO_BUILD) -o ./dist/createProduct/bootstrap ./cmd/createProduct/main.go && \
+	$(GO_BUILD) -o ./dist/importProductsFile/bootstrap ./cmd/importProductsFile/main.go && \
+	$(GO_BUILD) -o ./dist/importFileParser/bootstrap ./cmd/importFileParser/main.go
 
 .PHONY: deploy
 deploy: build-ui build-api
@@ -25,7 +27,7 @@ seed-local:
 
 .PHONY: deploy-local
 deploy-local:
-	cd infra && npx cdklocal bootstrap && npx cdklocal deploy DeployAPIStack --require-approval never --context local=true
+	cd infra && npx cdklocal bootstrap && npx cdklocal deploy DeployAPIStack ImportAPIStack --require-approval never --context local=true
 
 .PHONY: compose-up
 compose-up:

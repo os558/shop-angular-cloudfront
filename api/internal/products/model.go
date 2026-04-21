@@ -3,11 +3,13 @@ package products
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"sync"
 
+	"aws-practitioner-for-js/internal/awsclient"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -39,25 +41,18 @@ type StockDTO struct {
 	Count     int    `json:"count" dynamodbav:"count"`
 }
 
-// Using the Config value, create the DynamoDB client
-var getClient = sync.OnceValues(func() (*dynamodb.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return dynamodb.NewFromConfig(cfg), nil
-})
-
+// GetProducts returns all products with their stocks
 func GetProducts(ctx context.Context) ([]Product, error) {
 	var wg sync.WaitGroup
 
 	productTableName := os.Getenv("PRODUCTS_TABLE_NAME")
 	stockTableName := os.Getenv("STOCKS_TABLE_NAME")
 
-	svc, err := getClient()
+	svc, err := awsclient.GetDynamoDBClient(ctx)
 
 	if err != nil {
+		log.Printf("Failed to get DynamoDB client: %v", err)
+
 		return nil, err
 	}
 
@@ -108,12 +103,15 @@ func GetProducts(ctx context.Context) ([]Product, error) {
 	return products, nil
 }
 
+// scan scans a DynamoDB table and unmarshals the result to the given DTO
 func scan(ctx context.Context, svc *dynamodb.Client, tableName string, dto interface{}, errCh chan<- error) {
 	result, err := svc.Scan(ctx, &dynamodb.ScanInput{
 		TableName: aws.String(tableName),
 	})
 
 	if err != nil {
+		log.Printf("Failed to scan table %s: %v", tableName, err)
+
 		errCh <- err
 		return
 	}
@@ -121,16 +119,19 @@ func scan(ctx context.Context, svc *dynamodb.Client, tableName string, dto inter
 	err = attributevalue.UnmarshalListOfMaps(result.Items, dto)
 
 	if err != nil {
+		log.Printf("Failed to unmarshal items from table %s: %v", tableName, err)
+
 		errCh <- err
 		return
 	}
 }
 
+// GetProduct returns a product with its stock by id
 func GetProduct(ctx context.Context, id string) (Product, error) {
 	productTableName := os.Getenv("PRODUCTS_TABLE_NAME")
 	stockTableName := os.Getenv("STOCKS_TABLE_NAME")
 
-	svc, err := getClient()
+	svc, err := awsclient.GetDynamoDBClient(ctx)
 
 	result, err := svc.TransactGetItems(ctx, &dynamodb.TransactGetItemsInput{
 		TransactItems: []types.TransactGetItem{
@@ -144,6 +145,8 @@ func GetProduct(ctx context.Context, id string) (Product, error) {
 	})
 
 	if err != nil {
+		log.Printf("Failed to get items from tables: %v", err)
+
 		return Product{}, err
 	}
 
@@ -157,12 +160,16 @@ func GetProduct(ctx context.Context, id string) (Product, error) {
 	var productDTO ProductDTO
 	err = attributevalue.UnmarshalMap(productResult.Item, &productDTO)
 	if err != nil {
+		log.Printf("Failed to unmarshal product: %v", err)
+
 		return Product{}, err
 	}
 
 	var stockDTO StockDTO
 	err = attributevalue.UnmarshalMap(stockResult.Item, &stockDTO)
 	if err != nil {
+		log.Printf("Failed to unmarshal stock: %v", err)
+
 		return Product{}, err
 	}
 
@@ -175,13 +182,16 @@ func GetProduct(ctx context.Context, id string) (Product, error) {
 	}, nil
 }
 
+// CreateProduct creates a new product with its stock
 func CreateProduct(ctx context.Context, product Product) (Product, error) {
 	productTableName := os.Getenv("PRODUCTS_TABLE_NAME")
 	stockTableName := os.Getenv("STOCKS_TABLE_NAME")
 
-	svc, err := getClient()
+	svc, err := awsclient.GetDynamoDBClient(ctx)
 
 	if err != nil {
+		log.Printf("Failed to get DynamoDB client: %v", err)
+
 		return Product{}, err
 	}
 
@@ -191,6 +201,8 @@ func CreateProduct(ctx context.Context, product Product) (Product, error) {
 
 	productItem, stockItem, err := mapProductToDTO(product)
 	if err != nil {
+		log.Printf("Failed to map product to DTO: %v", err)
+
 		return Product{}, err
 	}
 
@@ -215,6 +227,8 @@ func CreateProduct(ctx context.Context, product Product) (Product, error) {
 	})
 
 	if err != nil {
+		log.Printf("Failed to write items to tables: %v", err)
+
 		return Product{}, err
 	}
 
@@ -223,6 +237,7 @@ func CreateProduct(ctx context.Context, product Product) (Product, error) {
 
 type AttributeValue map[string]types.AttributeValue
 
+// mapProductToDTO maps a Product to ProductDTO and StockDTO
 func mapProductToDTO(product Product) (AttributeValue, AttributeValue, error) {
 	productDTO := ProductDTO{
 		ID:          product.ID,
@@ -233,6 +248,8 @@ func mapProductToDTO(product Product) (AttributeValue, AttributeValue, error) {
 
 	productItem, err := attributevalue.MarshalMap(productDTO)
 	if err != nil {
+		log.Printf("Failed to marshal product: %v", err)
+
 		return nil, nil, err
 	}
 
@@ -243,12 +260,15 @@ func mapProductToDTO(product Product) (AttributeValue, AttributeValue, error) {
 
 	stockItem, err := attributevalue.MarshalMap(stockDTO)
 	if err != nil {
+		log.Printf("Failed to marshal stock: %v", err)
+
 		return nil, nil, err
 	}
 
 	return productItem, stockItem, nil
 }
 
+// getItemInput returns a Get item input for a DynamoDB table
 func getItemInput(tableName, key, id string) *types.Get {
 	return &types.Get{
 		TableName: aws.String(tableName),
