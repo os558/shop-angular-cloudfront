@@ -53,8 +53,15 @@ export class DeploymentService extends Construct {
                 // Set the default root object to index.html
                 defaultRootObject: 'index.html',
 
-                // Handle 404 errors by returning index.html
+                // Handle 403/404 errors by returning index.html so Angular's router
+                // can take over for deep-linked SPA routes. S3 returns 403 (not 404)
+                // for missing objects when the bucket is private with OAC.
                 errorResponses: [
+                    {
+                        httpStatus: 403,
+                        responseHttpStatus: 200,
+                        responsePagePath: '/index.html',
+                    },
                     {
                         httpStatus: 404,
                         responseHttpStatus: 200,
