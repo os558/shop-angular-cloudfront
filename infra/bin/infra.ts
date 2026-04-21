@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { DeployWebAppStack } from '../lib/client/deploy-web-app-stack';
-import { DeployAPIStack } from '../lib/api/deploy-api-stack';
 import { DomainStack } from '../lib/shared/domain-stack';
 import { DOMAIN_NAME } from '../lib/shared/config';
+import { APIStack } from '../lib/api/api-stack';
 
 const app = new cdk.App();
 
@@ -22,4 +22,4 @@ new DomainStack(app, 'DomainStack', {
 
 new DeployWebAppStack(app, 'DeployWebAppStack', { env });
 
-new DeployAPIStack(app, 'DeployAPIStack', { env });
+new APIStack(app, 'APIStack', { env });

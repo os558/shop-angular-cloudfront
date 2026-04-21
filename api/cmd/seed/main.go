@@ -9,8 +9,9 @@ import (
 
 	"os"
 
+	"aws-practitioner-for-js/internal/awsclient"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
@@ -62,7 +63,7 @@ func main() {
 
 	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(ctx)
+	cfg, err := awsclient.GetConfig(ctx)
 	if err != nil {
 		log.Fatalf("failed to load AWS config: %v", err)
 	}
