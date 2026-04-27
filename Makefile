@@ -1,4 +1,4 @@
-GO_BUILD := GOOS=linux GOARCH=arm64 go build -tags lambda.norpc
+GO_BUILD := CGO_ENABLED=0  GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -ldflags="-s -w"
 
 .PHONY: build-ui
 build-ui:
@@ -27,7 +27,7 @@ seed-local:
 
 .PHONY: deploy-local
 deploy-local:
-	cd infra && npx cdklocal bootstrap && npx cdklocal deploy DeployAPIStack ImportAPIStack --require-approval never --context local=true
+	cd infra && npx cdklocal bootstrap && npx cdklocal deploy APIStack --require-approval never --context local=true
 
 .PHONY: compose-up
 compose-up:
