@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { ApiService } from './api-service';
 import { ProductService } from './product-service';
 import { ImportService } from './import-service';
+import { AuthorizationService } from './authorization-service';
 
 export class APIStack extends cdk.Stack {
 
@@ -11,11 +12,17 @@ export class APIStack extends cdk.Stack {
 
     const apiService = new ApiService(this, 'api');
 
-    const productService = new ProductService(this, 'product-api', { sharedApi: apiService.sharedApi });
+    const authService = new AuthorizationService(this, 'authorization-api');
+
+    const productService = new ProductService(this, 'product-api', {
+      sharedApi: apiService.sharedApi,
+      basicAuthorizer: authService.lambdaBasicAuthorizer,
+    });
 
     new ImportService(this, 'import', {
       sharedApi: apiService.sharedApi,
       tables: productService.tables,
+      basicAuthorizer: authService.lambdaBasicAuthorizer,
     });
   }
 }

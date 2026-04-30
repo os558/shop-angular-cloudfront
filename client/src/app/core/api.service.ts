@@ -18,4 +18,14 @@ export abstract class ApiService {
   protected getUrl(api: ApiEndpoint, path: string): string {
     return Location.joinWithSlash(this.config.apiEndpoints[api], path);
   }
+
+  protected getAuthorizationHeader(): string {
+    const token = localStorage.getItem('authorization_token');
+
+    if (!token) {
+      return '';
+    }
+
+    return `Basic ${token}`;
+  }
 }

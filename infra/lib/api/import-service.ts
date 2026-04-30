@@ -2,29 +2,24 @@ import {
     aws_apigateway,
     aws_dynamodb,
     aws_lambda,
-    aws_route53,
-    aws_route53_targets,
     aws_s3,
     aws_s3_notifications,
     CfnOutput,
     RemovalPolicy,
-    Aspects,
-    IAspect,
-    StackProps,
     aws_sqs,
     Duration,
     aws_sns,
     aws_sns_subscriptions,
 } from "aws-cdk-lib";
-import { Construct, IConstruct } from "constructs";
+import { Construct } from "constructs";
 import { API_DOMAIN_NAME, DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
-import { createDomainResources } from "../shared/domain";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 const path = './../api/dist';
 
 export interface ImportServiceProps {
     sharedApi: aws_apigateway.RestApi;
+    basicAuthorizer: aws_apigateway.IAuthorizer;
     tables: Tables;
 }
 
@@ -65,7 +60,7 @@ export class ImportService extends Construct {
         const lambdas = this.createLambda(buckets, queues, notifications, tables);
 
         this.addEvents(buckets, lambdas);
-        this.addRoutes(sharedApi, lambdas);
+        this.addRoutes(sharedApi, lambdas, props.basicAuthorizer);
         this.addOutputs(sharedApi);
     }
 
@@ -203,13 +198,15 @@ export class ImportService extends Construct {
         );
     }
 
-    private addRoutes(api: aws_apigateway.RestApi, lambdas: Lambdas) {
+    private addRoutes(api: aws_apigateway.RestApi, lambdas: Lambdas, authorizer: aws_apigateway.IAuthorizer) {
         // Lambda integrations
         const importProductsFileIntegration = new aws_apigateway.LambdaIntegration(lambdas.lambdaImportProductsFile);
 
         // Products resource
         const productsResource = api.root.addResource("import");
-        productsResource.addMethod('GET', importProductsFileIntegration);
+        productsResource.addMethod('GET', importProductsFileIntegration, {
+            authorizer
+        });
     }
 
     private addOutputs(api: aws_apigateway.RestApi) {

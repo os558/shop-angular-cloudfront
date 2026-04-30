@@ -210,18 +210,10 @@ func CreateProduct(ctx context.Context, product Product) (Product, error) {
 		ClientRequestToken: aws.String(product.ID),
 		TransactItems: []types.TransactWriteItem{
 			{
-				Put: &types.Put{
-					TableName:           aws.String(productTableName),
-					Item:                productItem,
-					ConditionExpression: aws.String("attribute_not_exists(id)"),
-				},
+				Put: getPutInput(productTableName, "attribute_not_exists(id)", productItem),
 			},
 			{
-				Put: &types.Put{
-					TableName:           aws.String(stockTableName),
-					Item:                stockItem,
-					ConditionExpression: aws.String("attribute_not_exists(product_id)"),
-				},
+				Put: getPutInput(stockTableName, "attribute_not_exists(product_id)", stockItem),
 			},
 		},
 	})
@@ -233,6 +225,87 @@ func CreateProduct(ctx context.Context, product Product) (Product, error) {
 	}
 
 	return product, nil
+}
+
+// UpdateProduct updates an existing product with its stock
+func UpdateProduct(ctx context.Context, id string, product Product) (Product, error) {
+	productTableName := os.Getenv("PRODUCTS_TABLE_NAME")
+	stockTableName := os.Getenv("STOCKS_TABLE_NAME")
+
+	if id == "" {
+		return Product{}, ErrProductNotFound
+	}
+
+	svc, err := awsclient.GetDynamoDBClient(ctx)
+	if err != nil {
+		log.Printf("Failed to get DynamoDB client: %v", err)
+
+		return Product{}, err
+	}
+
+	// Ensure the ID in the body matches the URL ID
+	product.ID = id
+
+	productItem, stockItem, err := mapProductToDTO(product)
+	if err != nil {
+		log.Printf("Failed to map product to DTO: %v", err)
+
+		return Product{}, err
+	}
+
+	_, err = svc.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Put: getPutInput(productTableName, "attribute_exists(id)", productItem),
+			},
+			{
+				Put: getPutInput(stockTableName, "attribute_exists(product_id)", stockItem),
+			},
+		},
+	})
+
+	if err != nil {
+		log.Printf("Failed to update items in tables: %v", err)
+
+		return Product{}, err
+	}
+
+	return product, nil
+}
+
+func DeleteProduct(ctx context.Context, id string) error {
+	productTableName := os.Getenv("PRODUCTS_TABLE_NAME")
+	stockTableName := os.Getenv("STOCKS_TABLE_NAME")
+
+	if id == "" {
+		return ErrProductNotFound
+	}
+
+	svc, err := awsclient.GetDynamoDBClient(ctx)
+	if err != nil {
+		log.Printf("Failed to get DynamoDB client: %v", err)
+
+		return err
+	}
+
+	_, err = svc.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: getDeleteInput(productTableName, "id", id),
+			},
+			{
+				Delete: getDeleteInput(stockTableName, "product_id", id),
+			},
+		},
+	})
+
+	if err != nil {
+		log.Printf("Failed to delete items from tables: %v", err)
+
+		return err
+	}
+
+	return nil
 }
 
 type AttributeValue map[string]types.AttributeValue
@@ -268,7 +341,6 @@ func mapProductToDTO(product Product) (AttributeValue, AttributeValue, error) {
 	return productItem, stockItem, nil
 }
 
-// getItemInput returns a Get item input for a DynamoDB table
 func getItemInput(tableName, key, id string) *types.Get {
 	return &types.Get{
 		TableName: aws.String(tableName),
@@ -277,5 +349,25 @@ func getItemInput(tableName, key, id string) *types.Get {
 				Value: id,
 			},
 		},
+	}
+}
+
+func getDeleteInput(tableName, key, id string) *types.Delete {
+	return &types.Delete{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			key: &types.AttributeValueMemberS{
+				Value: id,
+			},
+		},
+		ConditionExpression: aws.String("attribute_exists(" + key + ")"),
+	}
+}
+
+func getPutInput(tableName, expression string, item AttributeValue) *types.Put {
+	return &types.Put{
+		TableName:           aws.String(tableName),
+		Item:                item,
+		ConditionExpression: aws.String(expression),
 	}
 }
