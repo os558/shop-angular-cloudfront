@@ -11,7 +11,8 @@ build-api:
 	$(GO_BUILD) -o ./dist/getProductsById/bootstrap ./cmd/getProductsById/main.go && \
 	$(GO_BUILD) -o ./dist/createProduct/bootstrap ./cmd/createProduct/main.go && \
 	$(GO_BUILD) -o ./dist/importProductsFile/bootstrap ./cmd/importProductsFile/main.go && \
-	$(GO_BUILD) -o ./dist/importFileParser/bootstrap ./cmd/importFileParser/main.go
+	$(GO_BUILD) -o ./dist/importFileParser/bootstrap ./cmd/importFileParser/main.go && \
+	$(GO_BUILD) -o ./dist/catalogBatchProcess/bootstrap ./cmd/catalogBatchProcess/main.go
 
 .PHONY: deploy
 deploy: build-ui build-api

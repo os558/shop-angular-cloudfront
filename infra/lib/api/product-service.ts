@@ -2,13 +2,10 @@ import {
     aws_apigateway,
     aws_dynamodb,
     aws_lambda,
-    aws_route53,
-    aws_route53_targets,
     CfnOutput,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { API_DOMAIN_NAME, DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
-import { createDomainResources } from "../shared/domain";
+import { API_DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
 
 const path = './../api/dist';
 
@@ -29,12 +26,13 @@ interface Tables {
 
 export class ProductService extends Construct {
 
+    public readonly tables: Tables;
+
     constructor(scope: Construct, id: string, props: ProductServiceProps) {
         super(scope, id);
 
-        const tables = this.createTables();
-
-        const lambdas = this.createLambda(tables);
+        this.tables = this.createTables();
+        const lambdas = this.createLambda(this.tables);
 
         this.addRoutes(props.sharedApi, lambdas);
         this.addOutputs(props.sharedApi);
