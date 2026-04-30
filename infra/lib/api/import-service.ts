@@ -19,7 +19,7 @@ const path = './../api/dist';
 
 export interface ImportServiceProps {
     sharedApi: aws_apigateway.RestApi;
-    basicAuthorizer: aws_apigateway.IAuthorizer;
+    authorizer: aws_apigateway.IAuthorizer;
     tables: Tables;
 }
 
@@ -51,7 +51,7 @@ export class ImportService extends Construct {
     constructor(scope: Construct, id: string, props: ImportServiceProps) {
         super(scope, id);
 
-        const { sharedApi, tables } = props;
+        const { sharedApi, tables, authorizer } = props;
 
         const buckets = this.createBuckets();
         const queues = this.createQueue();
@@ -60,8 +60,7 @@ export class ImportService extends Construct {
         const lambdas = this.createLambda(buckets, queues, notifications, tables);
 
         this.addEvents(buckets, lambdas);
-        this.addRoutes(sharedApi, lambdas, props.basicAuthorizer);
-        this.addOutputs(sharedApi);
+        this.addRoutes(sharedApi, lambdas, authorizer);
     }
 
     private createBuckets(): Buckets {
@@ -208,16 +207,4 @@ export class ImportService extends Construct {
             authorizer
         });
     }
-
-    private addOutputs(api: aws_apigateway.RestApi) {
-        new CfnOutput(this, 'ImportApiEndpoint', {
-            value: api.url,
-        });
-
-        new CfnOutput(this, 'ImportApiCustomDomain', {
-            value: `https://${API_DOMAIN_NAME}`,
-            description: 'The custom API domain URL',
-        });
-    }
-
 }
