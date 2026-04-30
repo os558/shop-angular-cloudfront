@@ -1,9 +1,10 @@
 services:
   localstack:
-    image: localstack/localstack:3
+    image: localstack/localstack:latest
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=lambda,apigateway,dynamodb,s3,cloudformation,iam,sts,ssm,logs
+      - SERVICES=lambda,apigateway,dynamodb,s3,cloudformation,iam,sts,ssm,logs,sqs,sns
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"

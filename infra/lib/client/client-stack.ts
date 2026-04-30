@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
-import { DeploymentService } from './deployment-service';
+import { ClientService } from './client-service';
 
-export class DeployAPIStack extends cdk.Stack {
+export class ClientStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new DeploymentService(this, 'deployment');
+    new ClientService(this, 'client-service');
   }
 }

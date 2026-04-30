@@ -14,7 +14,7 @@ import { createDomainResources } from "../shared/domain";
 
 const path = './../client/dist';
 
-export class DeploymentService extends Construct {
+export class ClientService extends Construct {
     constructor(scope: Construct, id: string) {
         super(scope, id);
 
