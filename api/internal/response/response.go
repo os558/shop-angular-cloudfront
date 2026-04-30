@@ -44,9 +44,13 @@ func JSON(statusCode int, body any) (events.APIGatewayProxyResponse, error) {
 		return ErrInternalServer(), nil
 	}
 
+	return TextPlain(statusCode, string(b))
+}
+
+func TextPlain(statusCode int, body string) (events.APIGatewayProxyResponse, error) {
 	return events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
 		Headers:    corsHeaders,
-		Body:       string(b),
+		Body:       body,
 	}, nil
 }

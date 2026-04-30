@@ -4,19 +4,21 @@
 
 import { Config } from './config.interface';
 
+const API_URL = 'https://azjkdqlcab.execute-api.localhost.localstack.cloud:4566/prod';
+
 export const environment: Config = {
   production: false,
   apiEndpoints: {
-    product: 'https://.execute-api.eu-west-1.amazonaws.com/dev',
-    order: 'https://.execute-api.eu-west-1.amazonaws.com/dev',
-    import: 'https://.execute-api.eu-west-1.amazonaws.com/dev',
-    bff: 'https://api.shop-angular-cloudfront.tech',
-    cart: 'https://.execute-api.eu-west-1.amazonaws.com/dev',
+    product: API_URL,
+    order: API_URL,
+    import: API_URL,
+    bff: API_URL,
+    cart: API_URL,
   },
   apiEndpointsEnabled: {
-    product: false,
+    product: true,
     order: false,
-    import: false,
+    import: true,
     bff: true,
     cart: false,
   },

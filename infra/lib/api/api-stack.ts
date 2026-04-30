@@ -10,7 +10,12 @@ export class APIStack extends cdk.Stack {
     super(scope, id, props);
 
     const apiService = new ApiService(this, 'api');
-    new ProductService(this, 'product-api', { sharedApi: apiService.sharedApi });
-    new ImportService(this, 'import', { sharedApi: apiService.sharedApi });
+
+    const productService = new ProductService(this, 'product-api', { sharedApi: apiService.sharedApi });
+
+    new ImportService(this, 'import', {
+      sharedApi: apiService.sharedApi,
+      tables: productService.tables,
+    });
   }
 }

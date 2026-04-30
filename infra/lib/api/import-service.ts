@@ -11,91 +11,62 @@ import {
     Aspects,
     IAspect,
     StackProps,
+    aws_sqs,
+    Duration,
+    aws_sns,
+    aws_sns_subscriptions,
 } from "aws-cdk-lib";
 import { Construct, IConstruct } from "constructs";
 import { API_DOMAIN_NAME, DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
 import { createDomainResources } from "../shared/domain";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 const path = './../api/dist';
 
 export interface ImportServiceProps {
     sharedApi: aws_apigateway.RestApi;
+    tables: Tables;
+}
+
+interface Tables {
+    productsTable: aws_dynamodb.Table;
+    stocksTable: aws_dynamodb.Table;
 }
 
 interface Lambdas {
     lambdaImportProductsFile: aws_lambda.Function;
     lambdaImportFileParser: aws_lambda.Function;
+    lambdaCatalogBatchProcess: aws_lambda.Function;
 }
 
 interface Buckets {
     importBucket: aws_s3.Bucket;
 }
 
+interface Queues {
+    productsQueue: aws_sqs.Queue;
+    dlq: aws_sqs.Queue;
+}
+
+interface Notifications {
+    createProductTopic: aws_sns.Topic;
+}
+
 export class ImportService extends Construct {
     constructor(scope: Construct, id: string, props: ImportServiceProps) {
         super(scope, id);
 
-        const buckets = this.createBuckets();
+        const { sharedApi, tables } = props;
 
-        const lambdas = this.createLambda(buckets);
+        const buckets = this.createBuckets();
+        const queues = this.createQueue();
+        const notifications = this.createNotifications();
+
+        const lambdas = this.createLambda(buckets, queues, notifications, tables);
 
         this.addEvents(buckets, lambdas);
-        this.addRoutes(props.sharedApi, lambdas);
-        this.addOutputs(props.sharedApi);
-    }
-
-    private createApi() {
-        // Check if local context is set
-        // in this case we don't need to create domain resources
-        // and we can use localstack url
-        const isLocal = this.node.tryGetContext('local') === 'true';
-
-        let domainProps = {};
-        let hostedZone: aws_route53.IHostedZone | null = null;
-
-        if (!isLocal) {
-            // Create domain resources
-            const domainResources = createDomainResources(this, {
-                domainName: API_DOMAIN_NAME,
-            });
-
-            hostedZone = domainResources.hostedZone;
-            domainProps = {
-                domainName: {
-                    domainName: API_DOMAIN_NAME,
-                    certificate: domainResources.certificate,
-                },
-            };
-        }
-
-        // Create API Gateway
-        const api = new aws_apigateway.RestApi(this, "import-api", {
-            restApiName: "Import API Gateway",
-            description: "This API serves the Lambda functions.",
-
-            // Custom domain name
-            ...domainProps,
-
-            // CORS configuration
-            defaultCorsPreflightOptions: {
-                allowOrigins: ['http://localhost:4200', `https://${DOMAIN_NAME}`],
-                allowMethods: aws_apigateway.Cors.ALL_METHODS,
-                allowHeaders: aws_apigateway.Cors.DEFAULT_HEADERS,
-            },
-        });
-
-        if (!isLocal && hostedZone) {
-            // DNS A record for api subdomain -> API Gateway
-            new aws_route53.ARecord(this, 'ApiAliasRecord', {
-                zone: hostedZone,
-                recordName: 'api',
-                target: aws_route53.RecordTarget.fromAlias(
-                    new aws_route53_targets.ApiGateway(api),
-                ),
-            });
-        }
-
-        return api;
+        this.addRoutes(sharedApi, lambdas);
+        this.addOutputs(sharedApi);
     }
 
     private createBuckets(): Buckets {
@@ -112,18 +83,62 @@ export class ImportService extends Construct {
 
                 // Automatically delete all objects in the bucket when the stack is deleted
                 autoDeleteObjects: true,
+
+                // S3 CORS rules – required so the browser can PUT directly via the pre-signed URL
+                cors: [
+                    {
+                        allowedOrigins: ['http://localhost:4200', `https://${DOMAIN_NAME}`],
+                        allowedMethods: [aws_s3.HttpMethods.PUT],
+                        allowedHeaders: ['*'],
+                        maxAge: 3000,
+                    },
+                ],
             });
 
         return { importBucket };
     }
 
-    private createLambda(buckets: Buckets): Lambdas {
+    private createQueue(): Queues {
+        const dlq = new aws_sqs.Queue(this, "DLQ", {
+            queueName: "catalog-items-dlq",
+            visibilityTimeout: Duration.seconds(30),
+        });
+
+        const queue = new aws_sqs.Queue(this, "ProductsQueue", {
+            queueName: "catalog-items-queue",
+            visibilityTimeout: Duration.seconds(30),
+            deadLetterQueue: {
+                queue: dlq,
+                maxReceiveCount: 3,
+            },
+        });
+
+        return { productsQueue: queue, dlq: dlq };
+    }
+
+    private createNotifications(): Notifications {
+        const createProductTopic = new aws_sns.Topic(this, "import-bucket-notification", {
+            topicName: "import-bucket-notification",
+        });
+
+        createProductTopic.addSubscription(new aws_sns_subscriptions.EmailSubscription("Oleh_Semeniuk1@epam.com"));
+
+        return { createProductTopic };
+    }
+
+    private createLambda(buckets: Buckets, queues: Queues, notifications: Notifications, tables: Tables): Lambdas {
         const { importBucket } = buckets;
-        // Lambda default configuration
+        const { productsQueue } = queues;
+        const { createProductTopic, } = notifications;
+        const { productsTable, stocksTable } = tables;
+
+        // Lambda default configuration (shared env vars for all import lambdas)
         const defaultLambdaConfig = {
             ...LambdaDefaultConfig,
             environment: {
                 BUCKET_NAME: importBucket.bucketName,
+                PRODUCTS_QUEUE_URL: productsQueue.queueUrl,
+                SNS_TOPIC_ARN: createProductTopic.topicArn,
             }
         }
 
@@ -144,10 +159,33 @@ export class ImportService extends Construct {
 
         // Grant read permissions to Lambda functions
         importBucket.grantRead(lambdaImportFileParser);
+        productsQueue.grantSendMessages(lambdaImportFileParser);
+
+        // CatalogBatchProcess needs DynamoDB access in addition to the shared env vars
+        const lambdaCatalogBatchProcess = new aws_lambda.Function(this, 'catalog-batch-process-lambda', {
+            code: aws_lambda.Code.fromAsset(`${path}/catalogBatchProcess`),
+            ...LambdaDefaultConfig,
+            environment: {
+                ...defaultLambdaConfig.environment,
+                PRODUCTS_TABLE_NAME: productsTable.tableName,
+                STOCKS_TABLE_NAME: stocksTable.tableName,
+            }
+        });
+
+        // Grant DynamoDB read/write access to CatalogBatchProcess
+        productsTable.grantReadWriteData(lambdaCatalogBatchProcess);
+        stocksTable.grantReadWriteData(lambdaCatalogBatchProcess);
+
+        lambdaCatalogBatchProcess.addEventSource(new SqsEventSource(productsQueue, {
+            batchSize: 5
+        }));
+
+        createProductTopic.grantPublish(lambdaCatalogBatchProcess);
 
         return {
             lambdaImportProductsFile: lambdaImportProductsFile,
             lambdaImportFileParser: lambdaImportFileParser,
+            lambdaCatalogBatchProcess: lambdaCatalogBatchProcess,
         };
     }
 
