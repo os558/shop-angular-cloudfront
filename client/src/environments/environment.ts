@@ -22,6 +22,10 @@ export const environment: Config = {
     bff: true,
     cart: false,
   },
+  cognito: {
+    enabled: true,
+    loginUrl: 'https://shop-angular-cloudfront.auth.us-east-1.amazoncognito.com/login?client_id=27inoro6kgi2bolt4vo13tiqdu&response_type=token&scope=email+openid+profile&redirect_uri=http://localhost:4200'
+  }
 };
 
 /*

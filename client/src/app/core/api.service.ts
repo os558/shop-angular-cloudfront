@@ -26,6 +26,10 @@ export abstract class ApiService {
       return '';
     }
 
+    if (this.config.cognito.enabled) {
+      return `Bearer ${token}`;
+    }
+
     return `Basic ${token}`;
   }
 }
