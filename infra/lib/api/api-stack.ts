@@ -16,13 +16,13 @@ export class APIStack extends cdk.Stack {
 
     const productService = new ProductService(this, 'product-api', {
       sharedApi: apiService.sharedApi,
-      basicAuthorizer: authService.lambdaBasicAuthorizer,
+      authorizer: authService.authorizer,
     });
 
     new ImportService(this, 'import', {
       sharedApi: apiService.sharedApi,
       tables: productService.tables,
-      basicAuthorizer: authService.lambdaBasicAuthorizer,
+      authorizer: authService.authorizer,
     });
   }
 }

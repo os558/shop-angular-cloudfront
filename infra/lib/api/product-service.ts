@@ -12,7 +12,7 @@ const path = './../api/dist';
 
 export interface ProductServiceProps {
     sharedApi: aws_apigateway.RestApi;
-    basicAuthorizer: aws_apigateway.IAuthorizer;
+    authorizer: aws_apigateway.IAuthorizer;
 }
 
 interface Lambdas {
@@ -35,13 +35,12 @@ export class ProductService extends Construct {
     constructor(scope: Construct, id: string, props: ProductServiceProps) {
         super(scope, id);
 
-        const { sharedApi, basicAuthorizer } = props;
+        const { sharedApi, authorizer } = props;
 
         this.tables = this.createTables();
         const lambdas = this.createLambda(this.tables);
 
-        this.addRoutes(sharedApi, lambdas, basicAuthorizer);
-        this.addOutputs(props.sharedApi);
+        this.addRoutes(sharedApi, lambdas, authorizer);
     }
 
     private createTables(): Tables {
@@ -161,16 +160,4 @@ export class ProductService extends Construct {
             authorizer
         });
     }
-
-    private addOutputs(api: aws_apigateway.RestApi) {
-        new CfnOutput(this, 'ApiEndpoint', {
-            value: api.url,
-        });
-
-        new CfnOutput(this, 'ApiCustomDomain', {
-            value: `https://${API_DOMAIN_NAME}`,
-            description: 'The custom API domain URL',
-        });
-    }
-
 }

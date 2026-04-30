@@ -4,23 +4,24 @@
   <div class="d-flex flex-fill"></div>
 
   <!-- Account btn -->
-  <button
-    [matMenuTriggerFor]="menu"
-    matTooltip="Open account menu"
-    mat-icon-button
-  >
+  <button [matMenuTriggerFor]="menu" matTooltip="Open account menu" mat-icon-button>
     <mat-icon>account_circle</mat-icon>
   </button>
 
   <!-- Cart btn -->
   <button routerLink="cart" matTooltip="Go to cart" mat-icon-button>
-    <mat-icon [matBadge]="totalInCart()" matBadgeColor="accent"
-      >shopping_cart</mat-icon
-    >
+    <mat-icon [matBadge]="totalInCart()" matBadgeColor="accent">shopping_cart</mat-icon>
   </button>
 </mat-toolbar>
 
 <mat-menu #menu="matMenu">
   <a routerLink="admin/orders" mat-menu-item>Manage orders</a>
   <a routerLink="admin/products" mat-menu-item>Manage products</a>
+  @if (useCognito) {
+  @if (!isLoggedIn) {
+  <button mat-menu-item (click)="login()">Login via Cognito</button>
+  } @else {
+  <button mat-menu-item (click)="logout()">Logout</button>
+  }
+  }
 </mat-menu>
