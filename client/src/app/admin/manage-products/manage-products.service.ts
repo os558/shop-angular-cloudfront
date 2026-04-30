@@ -32,7 +32,10 @@ export class ManageProductsService extends ApiService {
       params: {
         name: fileName,
       },
-      responseType: 'text'
+      responseType: 'text',
+      headers: {
+        Authorization: this.getAuthorizationHeader(),
+      },
     });
   }
 }

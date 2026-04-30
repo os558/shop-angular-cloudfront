@@ -23,6 +23,7 @@ import { RouterLink } from '@angular/router';
 import { MatButton } from '@angular/material/button';
 import { FilePickerComponent } from '../../shared/file-picker/file-picker.component';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { BehaviorSubject, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-manage-products',
@@ -54,9 +55,16 @@ export class ManageProductsComponent {
   readonly columns = ['from', 'description', 'price', 'count', 'action'];
 
   selectedFile = signal<File | undefined>(undefined);
-  products = toSignal(this.productsService.getProducts(), {
+  refreshSubject$ = new BehaviorSubject<void>(undefined);
+  products = toSignal(this.refreshSubject$.pipe(switchMap(() => this.productsService.getProducts())), {
     initialValue: [],
   });
+
+  deleteProduct(id: string): void {
+    this.productsService.deleteProduct(id).subscribe(() => {
+      this.refreshSubject$.next();
+    });
+  }
 
   onUploadCSV(): void {
     const selectedFile = this.selectedFile();
@@ -67,6 +75,7 @@ export class ManageProductsComponent {
 
     this.manageProductsService.uploadProductsCSV(selectedFile).subscribe(() => {
       this.selectedFile.set(undefined);
+      this.refreshSubject$.next();
     });
   }
 }

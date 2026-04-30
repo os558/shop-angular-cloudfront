@@ -4,7 +4,7 @@
 
 import { Config } from './config.interface';
 
-const API_URL = 'https://azjkdqlcab.execute-api.localhost.localstack.cloud:4566/prod';
+const API_URL = 'https://y7k6etbh5d.execute-api.us-east-1.amazonaws.com/prod';
 
 export const environment: Config = {
   production: false,

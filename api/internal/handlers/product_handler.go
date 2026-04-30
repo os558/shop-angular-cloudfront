@@ -58,3 +58,45 @@ func CreateProduct(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 	return response.JSON(http.StatusOK, createdProduct)
 }
+
+func UpdateProduct(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	productId := request.PathParameters["productId"]
+
+	var product products.Product
+	err := json.Unmarshal([]byte(request.Body), &product)
+	if err != nil {
+		log.Printf("Failed to unmarshal product: %v", err)
+		return response.ErrBadRequest(), nil
+	}
+
+	if product.Title == "" || product.Price == 0 {
+		log.Printf("Invalid product data: %v", product)
+		return response.ErrBadRequest(), nil
+	}
+
+	updatedProduct, err := products.UpdateProduct(ctx, productId, product)
+	if err != nil {
+		log.Printf("Failed to update product: %v", err)
+		if err == products.ErrProductNotFound {
+			return response.ErrNotFound(), nil
+		}
+		return response.ErrInternalServer(), nil
+	}
+
+	return response.JSON(http.StatusOK, updatedProduct)
+}
+
+func DeleteProduct(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	productId := request.PathParameters["productId"]
+
+	err := products.DeleteProduct(ctx, productId)
+	if err != nil {
+		log.Printf("Failed to delete product: %v", err)
+		if err == products.ErrProductNotFound {
+			return response.ErrNotFound(), nil
+		}
+		return response.ErrInternalServer(), nil
+	}
+
+	return response.JSON(http.StatusOK, nil)
+}

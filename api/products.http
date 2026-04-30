@@ -90,6 +90,6 @@ Content-Type: application/json
 
 ### Import File
 
-@baseUrl = https://xqa4pdv8pp.execute-api.localhost.localstack.cloud:4566/prod
+@baseUrl = https://0s8wbinuiy.execute-api.localhost.localstack.cloud:4566/prod/
 
 GET {{baseUrl}}/import?name=products.csv

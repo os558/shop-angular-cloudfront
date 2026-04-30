@@ -10,19 +10,6 @@ import { Construct } from "constructs";
 import { API_DOMAIN_NAME, DOMAIN_NAME } from "../shared/config";
 import { createDomainResources } from "../shared/domain";
 
-const path = './../api/dist';
-
-interface Lambdas {
-    getProductsList: aws_lambda.Function;
-    getProductsById: aws_lambda.Function;
-    createProduct: aws_lambda.Function;
-}
-
-interface Tables {
-    productsTable: aws_dynamodb.Table;
-    stocksTable: aws_dynamodb.Table;
-}
-
 export class ApiService extends Construct {
 
     public readonly sharedApi: aws_apigateway.RestApi;
