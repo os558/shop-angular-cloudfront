@@ -87,3 +87,9 @@ Content-Type: application/json
     "price": 30,
     "count": 30
 }
+
+### Import File
+
+@baseUrl = https://xqa4pdv8pp.execute-api.localhost.localstack.cloud:4566/prod
+
+GET {{baseUrl}}/import?name=products.csv

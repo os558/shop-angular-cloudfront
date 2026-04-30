@@ -2,15 +2,16 @@ import {
     aws_apigateway,
     aws_dynamodb,
     aws_lambda,
-    aws_route53,
-    aws_route53_targets,
     CfnOutput,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { API_DOMAIN_NAME, DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
-import { createDomainResources } from "../shared/domain";
+import { API_DOMAIN_NAME, LambdaDefaultConfig } from "../shared/config";
 
 const path = './../api/dist';
+
+export interface ProductServiceProps {
+    sharedApi: aws_apigateway.RestApi;
+}
 
 interface Lambdas {
     getProductsList: aws_lambda.Function;
@@ -23,75 +24,18 @@ interface Tables {
     stocksTable: aws_dynamodb.Table;
 }
 
-export class DeploymentService extends Construct {
-    constructor(scope: Construct, id: string) {
+export class ProductService extends Construct {
+
+    public readonly tables: Tables;
+
+    constructor(scope: Construct, id: string, props: ProductServiceProps) {
         super(scope, id);
 
-        // Create API Gateway
-        const api = this.createApi()
+        this.tables = this.createTables();
+        const lambdas = this.createLambda(this.tables);
 
-        // Creat    e tables
-        const tables = this.createTables();
-
-        // Create Lambda functions
-        const lambdas = this.createLambda(tables);
-
-        this.addRoutes(api, lambdas);
-        this.addOutputs(api);
-    }
-
-    private createApi() {
-        // Check if local context is set
-        // in this case we don't need to create domain resources
-        // and we can use localstack url
-        const isLocal = this.node.tryGetContext('local') === 'true';
-
-        let domainProps = {};
-        let hostedZone: aws_route53.IHostedZone | null = null;
-
-        if (!isLocal) {
-            // Create domain resources
-            const domainResources = createDomainResources(this, {
-                domainName: API_DOMAIN_NAME,
-            });
-
-            hostedZone = domainResources.hostedZone;
-            domainProps = {
-                domainName: {
-                    domainName: API_DOMAIN_NAME,
-                    certificate: domainResources.certificate,
-                },
-            };
-        }
-
-        // Create API Gateway
-        const api = new aws_apigateway.RestApi(this, "my-api", {
-            restApiName: "My API Gateway",
-            description: "This API serves the Lambda functions.",
-
-            // Custom domain name
-            ...domainProps,
-
-            // CORS configuration
-            defaultCorsPreflightOptions: {
-                allowOrigins: ['http://localhost:4200', `https://${DOMAIN_NAME}`],
-                allowMethods: aws_apigateway.Cors.ALL_METHODS,
-                allowHeaders: aws_apigateway.Cors.DEFAULT_HEADERS,
-            },
-        });
-
-        if (!isLocal && hostedZone) {
-            // DNS A record for api subdomain -> API Gateway
-            new aws_route53.ARecord(this, 'ApiAliasRecord', {
-                zone: hostedZone,
-                recordName: 'api',
-                target: aws_route53.RecordTarget.fromAlias(
-                    new aws_route53_targets.ApiGateway(api),
-                ),
-            });
-        }
-
-        return api;
+        this.addRoutes(props.sharedApi, lambdas);
+        this.addOutputs(props.sharedApi);
     }
 
     private createTables(): Tables {
