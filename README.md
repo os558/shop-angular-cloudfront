@@ -2,6 +2,9 @@ URL on frontend: https://shop-angular-cloudfront.tech
 
 URL on backend: https://api.shop-angular-cloudfront.tech
 
+user: admin@test.com
+pass: q1234567890
+
 # Available Commands
 
 The project uses a `Makefile` to automate common tasks.
