@@ -1,4 +1,4 @@
-URL on frontend: https://d1c3mejtij68x1.cloudfront.net/
+URL on frontend: https://shop-angular-cloudfront.tech
 
 URL on backend: https://api.shop-angular-cloudfront.tech
 
