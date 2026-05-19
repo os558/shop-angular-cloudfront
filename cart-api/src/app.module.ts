@@ -16,8 +16,8 @@ import { getDbConfig } from './shared/get-db-config';
     OrderModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
-      useFactory: async () => {
-        const config = await getDbConfig();
+      useFactory: () => {
+        const config = getDbConfig();
         return {
           type: 'postgres',
           host: config.host,
@@ -27,7 +27,7 @@ import { getDbConfig } from './shared/get-db-config';
           database: config.dbname,
           autoLoadEntities: true,
           synchronize: true,
-          ssl: process.env.DB_SECRET_ARN
+          ssl: config.host?.includes('rds.amazonaws.com')
             ? { rejectUnauthorized: false }
             : false,
         };

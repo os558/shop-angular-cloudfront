@@ -53,10 +53,6 @@ export class CartApiService extends Construct {
             ],
         });
 
-        vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
-            service: aws_ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-        });
-
         return vpc;
     }
 
@@ -73,6 +69,9 @@ export class CartApiService extends Construct {
             vpcSubnets: {
                 subnetType: aws_ec2.SubnetType.PRIVATE_ISOLATED,
             },
+            allocatedStorage: 20,
+            storageType: aws_rds.StorageType.GP2,
+            backupRetention: Duration.days(0),
             databaseName: 'cart',
             removalPolicy: RemovalPolicy.DESTROY,
             deletionProtection: false,
@@ -150,8 +149,8 @@ export class CartApiService extends Construct {
                 DB_HOST: db.dbInstanceEndpointAddress,
                 DB_PORT: db.dbInstanceEndpointPort,
                 DB_NAME: 'cart',
-                // The secret will contain 'username', 'password', 'host', 'port', 'dbname'
-                DB_SECRET_ARN: db.secret?.secretArn || '',
+                DB_USERNAME: db.secret?.secretValueFromJson('username').unsafeUnwrap() ?? '',
+                DB_PASSWORD: db.secret?.secretValueFromJson('password').unsafeUnwrap() ?? '',
                 USE_COGNITO: process.env.USE_COGNITO ?? 'false',
             },
             timeout: Duration.seconds(60),
@@ -174,10 +173,6 @@ export class CartApiService extends Construct {
                 ],
             },
         });
-
-        if (db.secret) {
-            db.secret.grantRead(lambdaFunction);
-        }
 
         db.connections.allowDefaultPortFrom(lambdaFunction);
 

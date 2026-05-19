@@ -5,7 +5,7 @@
 import { Config } from './config.interface';
 
 const API_URL = 'https://y7k6etbh5d.execute-api.us-east-1.amazonaws.com/prod';
-const COGNITO_CLIENT_ID = '3fn9q5p11n3u8293cqbn48vgch';
+const COGNITO_CLIENT_ID = '63ebj132e24knrpfkcih1sk85i';
 
 export const environment: Config = {
   production: false,
